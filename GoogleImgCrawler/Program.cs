@@ -15,16 +15,37 @@ namespace GoogleImgCrawler
 
     class Program
     {
-        public static string html;
-
+        
+        public static Queue<string>  contentQueue = new Queue<string>();
         static void Main(string[] args)
         {
-            //List<Thread> threads = new List<Thread>();
+
+            Thread saveThread = new Thread(() =>
+            {
+                while (true)
+                {
+                    if (contentQueue.Count > 0)
+                    {
+                        File.AppendAllText("D://googleImg.txt", contentQueue.Dequeue());
+                    }
+                    else
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }               
+
+            });
+            saveThread.Start();
             while (true)
             {
+                #region 测试代码
+             
+                #endregion
+                #region 测试1000值
                 Console.WriteLine("请输入关键词：");
                 String keyWord = Console.ReadLine().Trim();
                 keyWord.Replace(" ", "+").Replace(",", "+").Replace("、", "+");//谷歌搜索，搜索条件之间用"+"连接
+                #endregion
                 if (!string.IsNullOrEmpty(keyWord.Trim()))
                 {
                     //           
@@ -44,7 +65,8 @@ namespace GoogleImgCrawler
                             start = (100 * count).ToString();
                             HttpItem item = new HttpItem()
                             {
-                                URL = count >0 ? "https://www.google.com.hk/search?q="+taskKeyWord+"&newwindow=1&safe=strict&biw=1920&bih=995&site=imghp&tbm=isch&ijn="+count+"&ei=NxThVtLqNKbImAXJt5n4Aw&start="+start+"&ved=0ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB&vet=10ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB.NxThVtLqNKbImAXJt5n4Aw.i" : "https://www.google.com.hk/search?newwindow=1&safe=strict&site=imghp&tbm=isch&source=hp&biw=1920&bih=995&q="+taskKeyWord+"&gs_l=img.3..0j0i24l9.6815.13285.0.13701.29.19.4.0.0.0.416.2385.0j1j8j0j1.10.0....0...1ac.1j4.64.img..16.12.2001.DlZwjPhbRD0",
+                                URL = count > 0 ? "https://www.google.com.hk/search?q=" + taskKeyWord + "&newwindow=1&safe=strict&biw=1920&bih=995&site=imghp&tbm=isch&ijn=" + count + "&ei=NxThVtLqNKbImAXJt5n4Aw&start=" + start + "&ved=0ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB&vet=10ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB.NxThVtLqNKbImAXJt5n4Aw.i" : "https://www.google.com.hk/search?newwindow=1&safe=strict&site=imghp&tbm=isch&source=hp&biw=1920&bih=995&q=" + taskKeyWord + "&gs_l=img.3..0j0i24l9.6815.13285.0.13701.29.19.4.0.0.0.416.2385.0j1j8j0j1.10.0....0...1ac.1j4.64.img..16.12.2001.DlZwjPhbRD0",
+                               // URL = count > 0 ? "https://www.google.com.hk/search?q=" + taskKeyWord + "&newwindow=1&safe=strict&biw=800&bih=60&site=imghp&tbm=isch&ijn=" + count + "&ei=NxThVtLqNKbImAXJt5n4Aw&start=" + start + "&ved=0ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB&vet=10ahUKEwiS4oX2vrXLAhUmJKYKHclbBj8QuT0IGSgB.NxThVtLqNKbImAXJt5n4Aw.i" : "https://www.google.com.hk/search?newwindow=1&safe=strict&site=imghp&tbm=isch&source=hp&biw=800&bih=60&q=" + taskKeyWord + "&gs_l=img.3..0j0i24l9.6815.13285.0.13701.29.19.4.0.0.0.416.2385.0j1j8j0j1.10.0....0...1ac.1j4.64.img..16.12.2001.DlZwjPhbRD0",
                                 Method = "get",//URL     可选项 默认为Get   
                                 IsToLower = false,//得到的HTML代码是否转成小写     可选项默认转小写   
                                 Cookie = "NID=77=H_zf8nY0Q2oZyFBHQUdNb1R7FfhduoF49EpiIhLNNmLYoQKbapT-hxWSwnvLaTtb3EqJYSuCvBCKric-5PWFtWCyKBHGQN3WTsNm9TKdL7O710vB4WDxjjrw-cQcHWdskh25tnoRdQ",//字符串Cookie     可选项   
@@ -67,20 +89,22 @@ namespace GoogleImgCrawler
                             //string cookie = result.Cookie;
                             //解析结果，-----→                            
 
-                            List<ImgModel> list = count >0 ? GetJson(html) : GetJsonRaw(html);
+                            //List<ImgModel> list = count > 0 ? GetJsonPlus(html) : GetJsonRaw(html);//Kiwi：plus
+                            List<ImgModel> list = GetJsonPlus(html);
                             Int32 num = 0;
                             foreach (ImgModel model in list)
                             {
-                                num++;                                
+                                num++;
                                 StringBuilder content = new StringBuilder();
-                                content.Append((count+1).ToString()+"-"+num.ToString()+"->");
+                                content.Append("["+taskKeyWord+"]-");
+                                content.Append((count + 1).ToString() + "-" + num.ToString() + "->");                               
                                 content.Append("→图片URL:" + model.ou);//图片地址
-                                content.Append("→图片网站URL:"+model.ru);//网站地址
+                                content.Append("→图片网站URL:" + model.ru);//网站地址
                                 content.Append("→图片Title:" + model.pt + "\r\n");
-                                File.AppendAllText("D://googleImg.txt",content.ToString());
-                                
+                                contentQueue.Enqueue(content.ToString());                               
+
                             }
-                            
+
                             //解析结果，end-----→              
 
                             //停止条件：
@@ -115,10 +139,12 @@ namespace GoogleImgCrawler
                     //threads.Add(t);
                     t.Start();
                     Console.WriteLine("开始时间：【" + DateTime.Now + "】-任务关键字：" + keyWord);
-
+              
                 }
             }
         }
+        /*
+        //修改了，不用了
         public static List<ImgModel> GetJsonRaw(string source)
         {
             List<ImgModel> list = new List<ImgModel>();
@@ -130,9 +156,10 @@ namespace GoogleImgCrawler
                 style.Remove();
 
             string innerText = doc.DocumentNode.InnerText;
-            list = GetJson(innerText);
+            list = GetJsonPlus(innerText);
             return list;
         }
+        //修改了，不用了
         public static List<ImgModel> GetJson(string source)
         {
             List<ImgModel> list = new List<ImgModel>();
@@ -143,6 +170,25 @@ namespace GoogleImgCrawler
             {
                 indexStart = source.IndexOf("{");
                 indexEnd = source.IndexOf("}", indexStart);
+                string subJson = source.Substring(indexStart, indexEnd - indexStart + 1);
+                System.Web.Script.Serialization.JavaScriptSerializer js = new System.Web.Script.Serialization.JavaScriptSerializer();
+                ImgModel model = js.Deserialize<ImgModel>(subJson);
+                list.Add(model);
+                source = source.Substring(indexEnd);
+            }
+            return list;
+        }
+        */
+        public static List<ImgModel> GetJsonPlus(string source)
+        {
+            List<ImgModel> list = new List<ImgModel>();
+
+            Int32 indexStart = 0;
+            Int32 indexEnd = 0;
+            while (source.IndexOf("<!--m-->") > 0)
+            {
+                indexStart = source.IndexOf(">{", source.IndexOf("<!--m-->"))+1;
+                indexEnd = source.IndexOf("}</div>", indexStart);
                 string subJson = source.Substring(indexStart, indexEnd - indexStart + 1);
                 System.Web.Script.Serialization.JavaScriptSerializer js = new System.Web.Script.Serialization.JavaScriptSerializer();
                 ImgModel model = js.Deserialize<ImgModel>(subJson);
